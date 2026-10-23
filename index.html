@@ -6,27 +6,28 @@
     <title>The Post-Up Gazette</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Lora (serif) & Nunito (sans-serif) -->
+    <!-- Google Fonts: Inter & JetBrains Mono for stock ticker feel -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Nunito', 'sans-serif'],
-                        serif: ['Lora', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
-                        base: '#0f0f13',      /* Soft charcoal dark background */
-                        surface: '#1c1c24',   /* Slightly lighter surface */
-                        surfaceHover: '#252530',
-                        textBase: '#e0e0e0',  /* Soft off-white text */
-                        textMuted: '#9ca3af', /* Gray for secondary info */
-                        accent: '#d2a679',    /* Warm parchment/gold accent */
-                        accentHover: '#e6bd91',
+                        base: '#09090b',      /* Deep obsidian dark background */
+                        surface: '#121217',   /* Slightly lighter surface */
+                        surfaceHover: '#1a1a23',
+                        textBase: '#f4f4f5',  /* Crisp off-white text */
+                        textMuted: '#a1a1aa', /* Muted gray for secondary info */
+                        accent: '#10b981',    /* Terminal green accent */
+                        accentHover: '#059669',
+                        accentBlue: '#3b82f6',/* Secondary electric blue */
                     }
                 }
             }
@@ -34,25 +35,32 @@
     </script>
     <style>
         body {
-            background-color: #0f0f13;
-            color: #e0e0e0;
+            background-color: #09090b;
+            color: #f4f4f5;
         }
         
-        /* Custom scrollbar matching the cozy theme */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f0f13; }
-        ::-webkit-scrollbar-thumb { background: #4a4a5a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #d2a679; }
+        /* Custom scrollbar matching terminal theme */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
         
         /* Tab Contents */
-        .tab-content { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .tab-content { display: none; opacity: 0; transition: opacity 0.2s ease-in-out; }
         .tab-content.active { display: block; opacity: 1; }
 
-        /* Date Picker Dark Mode Fix & Accent */
-        ::-webkit-calendar-picker-indicator {
-            filter: invert(0.8) sepia(1) saturate(3) hue-rotate(330deg);
-            cursor: pointer;
-            transition: filter 0.2s;
+        /* Ticker Animation */
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-ticker {
+            display: flex;
+            white-space: nowrap;
+            animation: ticker 35s linear infinite;
+        }
+        .animate-ticker:hover {
+            animation-play-state: paused;
         }
 
         /* Modal Styles */
@@ -65,8 +73,8 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(15, 15, 19, 0.85);
-            backdrop-filter: blur(4px);
+            background-color: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(6px);
         }
         .modal.show {
             display: flex;
@@ -75,84 +83,90 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased min-h-screen flex flex-col">
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-accent selection:text-base">
 
-    <!-- Newspaper Masthead -->
-    <header class="pt-10 pb-6 px-6 relative border-b-2 border-gray-800">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+    <!-- Live Market Ticker Bar -->
+    <div class="bg-surface border-b border-zinc-800 py-2.5 overflow-hidden relative text-xs font-mono text-zinc-300">
+        <div class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-surface to-transparent w-12 z-10 pointer-events-none"></div>
+        <div class="absolute right-0 top-0 bottom-0 bg-gradient-to-l from-surface to-transparent w-12 z-10 pointer-events-none"></div>
+        
+        <div id="ticker-wrapper" class="animate-ticker">
+            <span class="mx-6 text-zinc-500">• LIVE FEED LOADING •</span>
+        </div>
+    </div>
+
+    <!-- Terminal Header -->
+    <header class="py-6 px-6 border-b border-zinc-800 bg-base sticky top-0 z-40 backdrop-blur-md bg-opacity-95">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             
-            <!-- Left Side Spacer (to perfectly center the title on desktop) -->
-            <div class="hidden md:block md:w-1/4"></div>
-            
-            <!-- Center: Logo and Title -->
-            <div class="flex flex-col items-center gap-3 md:w-2/4 text-center">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d2a679" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-90">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 2a14.5 14.5 0 0 0 0 20"></path>
-                    <path d="M2 12h20"></path>
-                    <path d="M4.93 4.93l14.14 14.14"></path>
-                    <path d="M4.93 19.07L19.07 4.93"></path>
-                </svg>
-                <div>
-                    <h1 class="text-4xl md:text-5xl font-serif font-bold text-textBase tracking-tight">
-                        The Post-Up Gazette
-                    </h1>
-                    <p class="text-accent text-sm md:text-base mt-2 font-serif italic tracking-wide">
-                        The Daily Basketball Ledger
-                    </p>
-                </div>
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-accent animate-pulse"></div>
+                <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white uppercase font-mono">
+                    The Post-Up <span class="text-accent">Gazette</span>
+                </h1>
+                <span class="text-[10px] font-mono bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">v3.2.0</span>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex items-center gap-2 bg-surface p-1.5 rounded-lg border border-zinc-800">
+                <button id="btn-scoreboard" class="tab-btn px-4 py-1.5 rounded-md text-xs font-mono font-medium transition-all bg-accent text-base" onclick="switchTab('scoreboard')">
+                    SCOREBOARD
+                </button>
+                <button id="btn-news" class="tab-btn px-4 py-1.5 rounded-md text-xs font-mono font-medium transition-all text-zinc-400 hover:text-white" onclick="switchTab('news')">
+                    NEWS WIRE
+                </button>
+                <button id="btn-standings" class="tab-btn px-4 py-1.5 rounded-md text-xs font-mono font-medium transition-all text-zinc-400 hover:text-white" onclick="switchTab('standings')">
+                    STANDINGS
+                </button>
             </div>
             
-            <!-- Right: Date Picker -->
-            <div class="flex items-center justify-center md:justify-end md:w-1/4">
-                <div class="flex flex-col items-end">
-                    <label for="datePicker" class="font-serif text-accent text-xs uppercase tracking-widest mb-1">Edition Date</label>
-                    <input type="date" id="datePicker" class="bg-surface border border-gray-700 rounded px-3 py-1.5 text-textBase font-sans text-sm focus:outline-none focus:border-accent transition-colors">
-                </div>
+            <!-- Date Selector -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-mono text-zinc-400">DATE:</span>
+                <input type="date" id="datePicker" class="bg-surface border border-zinc-700 text-white rounded px-2.5 py-1 text-xs font-mono focus:outline-none focus:border-accent transition-colors">
             </div>
         </div>
     </header>
 
-    <!-- Tab Navigation -->
-    <div class="max-w-7xl mx-auto w-full px-6 mb-8 pt-4">
-        <div class="flex flex-wrap justify-center gap-6 md:gap-12 border-b border-gray-800/50 pb-2">
-            <button id="btn-scoreboard" class="tab-btn font-serif text-lg px-2 py-1 transition-all duration-300 text-accent border-b-2 border-accent" onclick="switchTab('scoreboard')">
-                Scoreboard
-            </button>
-            <button id="btn-news" class="tab-btn font-serif text-lg px-2 py-1 transition-all duration-300 text-textMuted border-b-2 border-transparent hover:text-textBase" onclick="switchTab('news')">
-                News Wire
-            </button>
-            <button id="btn-standings" class="tab-btn font-serif text-lg px-2 py-1 transition-all duration-300 text-textMuted border-b-2 border-transparent hover:text-textBase" onclick="switchTab('standings')">
-                Standings
-            </button>
-        </div>
-    </div>
-
-    <!-- Main Content Area -->
-    <main class="flex-grow container mx-auto px-6 max-w-7xl mb-12">
+    <!-- Main Content Container -->
+    <main class="flex-grow container mx-auto px-6 max-w-7xl py-8">
         
         <!-- TAB 1: SCOREBOARD -->
         <div id="tab-scoreboard" class="tab-content active">
-            <div id="scoreboard-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <p class="text-textMuted italic text-center col-span-full font-serif">Gathering today's matchups...</p>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-mono font-bold tracking-wide text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-accentBlue"></span> LIVE MATCHUPS & BOX SCORES
+                </h2>
+                <span id="scoreboard-date-label" class="text-xs font-mono text-zinc-400"></span>
+            </div>
+            <div id="scoreboard-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-zinc-500 font-mono italic col-span-full py-8 text-center">Querying live scoreboard feeds...</p>
             </div>
         </div>
 
-        <!-- TAB 2: NEWS -->
+        <!-- TAB 2: NEWS WIRE -->
         <div id="tab-news" class="tab-content">
-            <div class="flex items-center gap-3 mb-6 border-b border-gray-800 pb-3">
-                <h2 class="text-2xl font-serif font-bold text-textBase">Around the League</h2>
-                <span class="bg-surface border border-gray-700 text-[10px] px-2 py-1 rounded text-accent font-sans uppercase tracking-wider">Verified Sources</span>
+            <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-3">
+                <h2 class="text-lg font-mono font-bold tracking-wide text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-accent"></span> LEAGUE NEWS FEED (VERIFIED WIRE)
+                </h2>
+                <span class="text-xs font-mono text-zinc-400">ESPN • YAHOO • CBS • AP</span>
             </div>
-            <div id="news-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <p class="text-textMuted italic font-serif">Curating the latest NBA headlines...</p>
+            <div id="news-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <p class="text-zinc-500 font-mono italic col-span-full py-8 text-center">Aggregating NBA stories from verified journalists...</p>
             </div>
         </div>
 
         <!-- TAB 3: STANDINGS -->
         <div id="tab-standings" class="tab-content">
+            <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-3">
+                <h2 class="text-lg font-mono font-bold tracking-wide text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> LEAGUE STANDINGS (1–15 RANKED)
+                </h2>
+                <span class="text-xs font-mono text-zinc-400">Sorted by Win %</span>
+            </div>
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-8" id="standings-container">
-                <p class="text-textMuted italic col-span-full font-serif text-center">Calculating current standings...</p>
+                <p class="text-zinc-500 font-mono italic col-span-full py-8 text-center">Calculating conference standings...</p>
             </div>
         </div>
 
@@ -160,44 +174,46 @@
 
     <!-- Box Score Modal -->
     <div id="boxScoreModal" class="modal">
-        <div class="bg-surface border border-gray-700 rounded-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto m-4 relative shadow-2xl">
-            <button onclick="closeModal()" class="absolute top-5 right-5 text-gray-400 hover:text-accent transition-colors bg-base p-1 rounded-full border border-gray-700">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <div class="bg-surface border border-zinc-700 rounded-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto m-4 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors bg-base p-2 rounded-full border border-zinc-700">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
             <div class="p-6 md:p-8">
-                <h2 id="modal-title" class="text-2xl md:text-3xl font-serif font-bold text-textBase mb-6 border-b border-gray-700 pb-4">Game Box Score</h2>
-                <div id="modal-content" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <p class="text-accent animate-pulse col-span-full text-center py-8 font-serif text-lg">Reviewing the tape...</p>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-2 h-2 rounded-full bg-accent"></span>
+                    <span class="text-xs font-mono text-zinc-400 uppercase tracking-widest">Player Performance Feed</span>
+                </div>
+                <h2 id="modal-title" class="text-xl md:text-2xl font-mono font-bold text-white mb-6 border-b border-zinc-800 pb-4">Game Box Score</h2>
+                <div id="modal-content" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <p class="text-accent font-mono animate-pulse col-span-full text-center py-8">Parsing player statistics...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="border-t border-gray-800 py-8 mt-auto text-center bg-base">
-        <p class="text-sm text-textMuted font-serif">The Post-Up Gazette &copy; 2026 | Dedicated to the Game</p>
+    <!-- Terminal Footer -->
+    <footer class="border-t border-zinc-800 py-6 mt-auto bg-base text-center font-mono text-xs text-zinc-500">
+        <p>THE POST-UP GAZETTE &copy; 2026 — SECURE BASKETBALL TERMINAL</p>
     </footer>
 
-    <!-- App Logic -->
+    <!-- Terminal Logic -->
     <script>
         // --- UI Logic: Tabs ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            
             document.querySelectorAll('.tab-btn').forEach(el => {
-                el.className = 'tab-btn font-serif text-lg px-2 py-1 transition-all duration-300 text-textMuted border-b-2 border-transparent hover:text-textBase';
+                el.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-mono font-medium transition-all text-zinc-400 hover:text-white';
             });
 
             document.getElementById(`tab-${tabId}`).classList.add('active');
-            
             const activeBtn = document.getElementById(`btn-${tabId}`);
-            activeBtn.className = 'tab-btn font-serif text-lg px-2 py-1 transition-all duration-300 text-accent border-b-2 border-accent';
+            activeBtn.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-mono font-medium transition-all bg-accent text-base';
         }
 
         // --- UI Logic: Modal ---
         function openModal(eventId, matchTitle) {
             document.getElementById('modal-title').textContent = matchTitle;
-            document.getElementById('modal-content').innerHTML = '<p class="text-accent animate-pulse col-span-full text-center py-8 font-serif text-lg">Fetching box score data...</p>';
+            document.getElementById('modal-content').innerHTML = '<p class="text-accent font-mono animate-pulse col-span-full text-center py-8">Fetching live box score data...</p>';
             document.getElementById('boxScoreModal').classList.add('show');
             fetchBoxScore(eventId);
         }
@@ -213,12 +229,10 @@
             }
         }
 
-        // --- Data Fetching Logic ---
-        
-        // 1. Scoreboard
+        // --- 1. Scoreboard Data Fetcher ---
         async function fetchScoreboard(dateString) {
             const container = document.getElementById('scoreboard-container');
-            container.innerHTML = '<p class="text-textMuted italic text-center col-span-full font-serif">Loading scores...</p>';
+            container.innerHTML = '<p class="text-zinc-500 font-mono italic text-center col-span-full py-8">Loading scoreboard...</p>';
             
             const formattedDate = dateString.replace(/-/g, '');
             const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${formattedDate}`;
@@ -228,9 +242,12 @@
                 const data = await response.json();
                 
                 if (!data.events || data.events.length === 0) {
-                    container.innerHTML = '<p class="text-textMuted text-center col-span-full font-serif">No games scheduled for this date.</p>';
+                    container.innerHTML = '<p class="text-zinc-500 font-mono text-center col-span-full py-8">No matchups scheduled for this date.</p>';
                     return;
                 }
+
+                // Populate ticker with live scores
+                updateTicker(data.events);
 
                 container.innerHTML = data.events.map(event => {
                     const comp = event.competitions[0];
@@ -242,65 +259,75 @@
                     const homeLogo = home.team.logo || 'https://a.espncdn.com/i/teamlogos/default-team-logo-500.png';
                     
                     const venue = comp.venue;
-                    const venueName = venue?.fullName || '';
+                    const venueName = venue?.fullName || 'Arena TBD';
                     const venueCity = venue?.address?.city || '';
                     const venueState = venue?.address?.state || '';
-                    const locationSuffix = venueState ? `${venueCity}, ${venueState}` : venueCity;
-                    const venueDisplay = venueName ? `${venueName} <br> <span class="text-[10px] text-textMuted">${locationSuffix}</span>` : 'Venue TBD';
+                    const location = venueState ? `${venueCity}, ${venueState}` : venueCity;
 
                     const broadcasts = comp.broadcasts;
                     const tvDisplay = (broadcasts && broadcasts.length > 0 && broadcasts[0].names && broadcasts[0].names.length > 0)
                         ? broadcasts[0].names.join(', ')
                         : 'League Pass';
 
-                    const matchTitle = `${away.team.abbreviation} vs ${home.team.abbreviation}`;
+                    const matchTitle = `${away.team.abbreviation} @ ${home.team.abbreviation}`;
 
                     return `
-                        <div class="bg-surface border border-gray-800 rounded-lg p-5 hover:border-accent transition-all duration-300 flex flex-col relative shadow-md">
-                            
-                            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-                                <div class="text-[11px] text-textMuted font-bold uppercase tracking-widest flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
-                                    ${tvDisplay}
+                        <div class="bg-surface border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-all flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-center mb-3 pb-2 border-b border-zinc-800 font-mono text-[11px]">
+                                    <span class="text-zinc-400 flex items-center gap-1">📺 ${tvDisplay}</span>
+                                    <span class="text-accent font-semibold">${status}</span>
                                 </div>
-                                <div class="text-xs text-accent font-semibold tracking-wide">${status}</div>
-                            </div>
 
-                            <div class="flex justify-between items-center mt-1">
-                                <div class="flex items-center gap-3">
-                                    <img src="${awayLogo}" alt="${away.team.name}" class="w-9 h-9 object-contain drop-shadow-md">
-                                    <span class="font-sans font-bold text-xl text-textBase">${away.team.abbreviation}</span>
+                                <div class="flex justify-between items-center my-2">
+                                    <div class="flex items-center gap-2.5">
+                                        <img src="${awayLogo}" class="w-7 h-7 object-contain">
+                                        <span class="font-bold text-sm text-white">${away.team.abbreviation}</span>
+                                    </div>
+                                    <span class="font-mono font-bold text-lg text-white">${away.score || '0'}</span>
                                 </div>
-                                <span class="font-sans font-bold text-2xl text-white">${away.score || '-'}</span>
-                            </div>
-                            
-                            <div class="flex justify-between items-center mt-3">
-                                <div class="flex items-center gap-3">
-                                    <img src="${homeLogo}" alt="${home.team.name}" class="w-9 h-9 object-contain drop-shadow-md">
-                                    <span class="font-sans font-bold text-xl text-textBase">${home.team.abbreviation}</span>
+
+                                <div class="flex justify-between items-center my-2">
+                                    <div class="flex items-center gap-2.5">
+                                        <img src="${homeLogo}" class="w-7 h-7 object-contain">
+                                        <span class="font-bold text-sm text-white">${home.team.abbreviation}</span>
+                                    </div>
+                                    <span class="font-mono font-bold text-lg text-white">${home.score || '0'}</span>
                                 </div>
-                                <span class="font-sans font-bold text-2xl text-white">${home.score || '-'}</span>
-                            </div>
-                            
-                            <div class="mt-5 pt-3 mb-4 bg-base rounded px-3 py-2 border border-gray-800/60">
-                                <div class="text-xs text-textMuted font-sans flex items-start gap-2 leading-tight">
-                                    <svg class="w-3.5 h-3.5 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                    <span>${venueDisplay}</span>
+
+                                <div class="mt-3 pt-2 border-t border-zinc-800/60 text-[11px] font-mono text-zinc-400">
+                                    <div class="truncate">📍 ${venueName}</div>
+                                    <div class="text-zinc-500">${location}</div>
                                 </div>
                             </div>
 
-                            <button onclick="openModal('${event.id}', '${matchTitle}')" class="w-full py-2.5 rounded bg-base border border-gray-700 text-sm font-sans font-semibold text-textMuted hover:text-accent hover:border-accent transition-colors mt-auto">
-                                View Box Score
+                            <button onclick="openModal('${event.id}', '${matchTitle}')" class="w-full mt-4 py-2 rounded bg-base border border-zinc-700 text-xs font-mono font-semibold text-zinc-300 hover:text-white hover:border-accent transition-colors">
+                                VIEW BOX SCORE →
                             </button>
                         </div>
                     `;
                 }).join('');
             } catch (error) {
-                container.innerHTML = '<p class="text-accent font-medium text-center col-span-full">Error loading scoreboard.</p>';
+                container.innerHTML = '<p class="text-red-400 font-mono text-center col-span-full py-8">Error loading scoreboard feed.</p>';
             }
         }
 
-        // 1b. Fetch Box Score Logic
+        // Update Ticker
+        function updateTicker(events) {
+            const tickerWrapper = document.getElementById('ticker-wrapper');
+            const tickerContent = events.map(event => {
+                const comp = event.competitions[0];
+                const home = comp.competitors.find(c => c.homeAway === 'home');
+                const away = comp.competitors.find(c => c.homeAway === 'away');
+                const status = event.status.type.shortDetail;
+                return `<span class="mx-4 text-zinc-300"><strong class="text-white">${away.team.abbreviation}</strong> ${away.score || 0} - ${home.score || 0} <strong class="text-white">${home.team.abbreviation}</strong> <span class="text-accent ml-1">(${status})</span></span>`;
+            }).join(' <span class="text-zinc-700">|</span> ');
+
+            // Duplicate for infinite seamless scroll
+            tickerWrapper.innerHTML = tickerContent + ' <span class="text-zinc-700">|</span> ' + tickerContent;
+        }
+
+        // --- Box Score Parser ---
         async function fetchBoxScore(eventId) {
             const container = document.getElementById('modal-content');
             const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${eventId}`;
@@ -310,7 +337,7 @@
                 const data = await response.json();
 
                 if (!data.boxscore || !data.boxscore.players) {
-                    container.innerHTML = '<p class="text-textMuted col-span-full text-center font-serif">Box score data is not available for this game yet.</p>';
+                    container.innerHTML = '<p class="text-zinc-400 col-span-full text-center font-mono">Box score not yet available.</p>';
                     return;
                 }
 
@@ -321,7 +348,7 @@
                     const statsArray = teamData.statistics?.[0];
 
                     if (!statsArray || !statsArray.athletes || !statsArray.labels) {
-                        htmlContent += `<div><h3 class="text-xl font-serif font-bold text-textBase mb-3">${teamName}</h3><p class="text-sm text-textMuted">Stats unavailable.</p></div>`;
+                        htmlContent += `<div class="bg-base border border-zinc-800 rounded p-4"><h3 class="font-mono font-bold text-white mb-2">${teamName}</h3><p class="text-xs text-zinc-500 font-mono">Stats unavailable.</p></div>`;
                         return;
                     }
 
@@ -348,126 +375,107 @@
                     players = players.filter(p => !p.dnp).sort((a, b) => b.pts - a.pts).slice(0, 6);
 
                     let playerRows = players.map(p => `
-                        <div class="flex justify-between items-center py-2.5 border-b border-gray-800 last:border-0 hover:bg-surfaceHover px-2 rounded transition-colors font-sans">
-                            <span class="text-sm font-semibold text-textBase w-1/2 truncate">${p.name}</span>
-                            <div class="flex w-1/2 justify-end gap-5 text-sm">
-                                <span class="w-8 text-right font-bold text-white">${p.pts}</span>
-                                <span class="w-8 text-right font-medium text-textMuted">${p.reb}</span>
-                                <span class="w-8 text-right font-medium text-textMuted">${p.ast}</span>
+                        <div class="flex justify-between items-center py-2 border-b border-zinc-800/60 last:border-0 font-mono text-xs">
+                            <span class="text-white font-medium truncate w-1/2">${p.name}</span>
+                            <div class="flex w-1/2 justify-end gap-4">
+                                <span class="w-8 text-right font-bold text-accent">${p.pts}</span>
+                                <span class="w-8 text-right text-zinc-400">${p.reb}</span>
+                                <span class="w-8 text-right text-zinc-400">${p.ast}</span>
                             </div>
                         </div>
                     `).join('');
 
                     htmlContent += `
-                        <div class="bg-base border border-gray-800 rounded-lg p-5 shadow-inner">
-                            <h3 class="text-xl font-serif font-bold text-accent mb-4 border-b border-gray-800 pb-2">${teamName}</h3>
-                            
-                            <div class="flex justify-between items-center py-1 mb-2 text-xs font-bold text-textMuted uppercase tracking-wider px-2 font-sans">
-                                <span class="w-1/2">Player</span>
-                                <div class="flex w-1/2 justify-end gap-5">
+                        <div class="bg-base border border-zinc-800 rounded-lg p-4">
+                            <h3 class="font-mono font-bold text-sm text-white mb-3 border-b border-zinc-800 pb-2">${teamName}</h3>
+                            <div class="flex justify-between items-center mb-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                                <span>Player</span>
+                                <div class="flex gap-4">
                                     <span class="w-8 text-right text-accent">PTS</span>
                                     <span class="w-8 text-right">REB</span>
                                     <span class="w-8 text-right">AST</span>
                                 </div>
                             </div>
-                            
                             ${playerRows}
                         </div>
                     `;
                 });
 
                 container.innerHTML = htmlContent;
-
             } catch (error) {
-                container.innerHTML = '<p class="text-accent font-medium text-center col-span-full">Failed to load box score details.</p>';
+                container.innerHTML = '<p class="text-red-400 font-mono text-center col-span-full">Failed to load box score.</p>';
             }
         }
 
-        // 2. Multi-Source News Engine with Strict NBA Filter
+        // --- 2. Multi-Source News Aggregator (15+ Stories) ---
         async function fetchNews() {
             const container = document.getElementById('news-container');
-            
-            // Strict Keyword Blocking to prevent cross-sport contamination
-            const blockList = ['nhl', 'nfl', 'mlb', 'hockey', 'football', 'baseball', 'soccer', 'tkachuk', 'mcdavid', 'mahomes', 'chiefs', 'tennis', 'golf', 'wnba', 'college', 'ncaa'];
+            const blockList = ['nhl', 'nfl', 'mlb', 'hockey', 'football', 'baseball', 'soccer', 'tkachuk', 'mcdavid', 'mahomes', 'tennis', 'golf', 'college', 'ncaa'];
             
             const isNbaOnly = (text) => {
                 if (!text) return true;
                 const lower = text.toLowerCase();
-                return !blockList.some(blockedTerm => lower.includes(blockedTerm));
+                return !blockList.some(term => lower.includes(term));
             };
 
             const endpoints = [
-                // ESPN NBA Native API
-                { url: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news', type: 'espn' },
-                // NYT Pro Basketball RSS via rss2json
-                { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/ProBasketball.xml', type: 'rss', sourceName: 'NYT Sports' },
-                // Yahoo Sports NBA RSS
-                { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://sports.yahoo.com/nba/rss/', type: 'rss', sourceName: 'Yahoo Sports' },
-                // CBS Sports NBA RSS
-                { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://www.cbssports.com/rss/headlines/nba/', type: 'rss', sourceName: 'CBS Sports' }
+                'https://api.rss2json.com/v1/api.json?rss_url=https://www.espn.com/espn/rss/nba/news',
+                'https://api.rss2json.com/v1/api.json?rss_url=https://sports.yahoo.com/nba/rss/',
+                'https://api.rss2json.com/v1/api.json?rss_url=https://www.cbssports.com/rss/headlines/nba/',
+                'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/ProBasketball.xml'
             ];
 
             try {
-                const fetchPromises = endpoints.map(ep => fetch(ep.url).then(res => res.json()).then(data => ({ data, type: ep.type, sourceName: ep.sourceName })).catch(() => null));
-                const results = await Promise.all(fetchPromises);
-                
+                const results = await Promise.all(endpoints.map(url => fetch(url).then(r => r.json()).catch(() => null)));
                 let allArticles = [];
 
-                results.forEach(result => {
-                    if (!result || !result.data) return;
-
-                    if (result.type === 'espn' && result.data.articles) {
-                        result.data.articles.forEach(art => {
-                            if (isNbaOnly(art.headline) && isNbaOnly(art.description)) {
-                                allArticles.push({
-                                    title: art.headline,
-                                    description: art.description,
-                                    url: art.links?.web?.href || '#',
-                                    date: new Date(art.published),
-                                    source: 'ESPN'
-                                });
-                            }
-                        });
-                    } else if (result.type === 'rss' && result.data.items) {
-                        result.data.items.forEach(item => {
-                            if (isNbaOnly(item.title) && isNbaOnly(item.description)) {
-                                const cleanDesc = item.description.replace(/<\/?[^>]+(>|$)/g, ""); // Strip HTML
-                                allArticles.push({
-                                    title: item.title,
-                                    description: cleanDesc,
-                                    url: item.link,
-                                    date: new Date(item.pubDate),
-                                    source: result.sourceName
-                                });
-                            }
-                        });
-                    }
+                results.forEach((res, idx) => {
+                    if (!res || !res.items) return;
+                    const sources = ['ESPN', 'Yahoo Sports', 'CBS Sports', 'NYT Sports'];
+                    res.items.forEach(item => {
+                        if (isNbaOnly(item.title) && isNbaOnly(item.description)) {
+                            const cleanDesc = item.description.replace(/<\/?[^>]+(>|$)/g, "").trim();
+                            allArticles.push({
+                                title: item.title,
+                                description: cleanDesc,
+                                url: item.link,
+                                date: new Date(item.pubDate),
+                                source: sources[idx] || 'Wire'
+                            });
+                        }
+                    });
                 });
 
-                // Sort chronological descending
                 allArticles.sort((a, b) => b.date - a.date);
+                allArticles = allArticles.slice(0, 20); // 15+ stories
 
                 if (allArticles.length === 0) {
-                    container.innerHTML = '<p class="text-textMuted col-span-full font-serif text-center">No verified NBA news available right now.</p>';
+                    container.innerHTML = '<p class="text-zinc-500 font-mono text-center col-span-full py-8">No live stories available right now.</p>';
                     return;
                 }
 
                 container.innerHTML = allArticles.map(article => `
-                    <a href="${article.url}" target="_blank" class="block bg-surface border border-gray-800 p-6 rounded-lg hover:border-accent transition-all duration-300 shadow-md flex flex-col h-full group">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-base bg-accent/20 text-accent px-2 py-1 rounded border border-accent/30">${article.source}</span>
-                            <span class="text-xs font-sans font-medium text-textMuted">${article.date.toLocaleDateString()}</span>
+                    <a href="${article.url}" target="_blank" class="bg-surface border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                        <div>
+                            <div class="flex items-center justify-between mb-2 font-mono text-[10px]">
+                                <span class="bg-zinc-800 text-accent px-2 py-0.5 rounded border border-zinc-700 uppercase">${article.source}</span>
+                                <span class="text-zinc-500">${article.date.toLocaleDateString()}</span>
+                            </div>
+                            <h3 class="font-sans font-bold text-white group-hover:text-accent transition-colors text-base mb-2 leading-snug">${article.title}</h3>
+                            <p class="text-zinc-400 text-xs line-clamp-2 font-sans leading-relaxed">${article.description || ''}</p>
                         </div>
-                        <h3 class="text-lg font-serif font-bold text-textBase mb-3 group-hover:text-accent leading-snug transition-colors">${article.title}</h3>
-                        <p class="text-textMuted text-sm line-clamp-3 font-sans mt-auto leading-relaxed">${article.description || ''}</p>
+                        <div class="mt-4 pt-2 border-t border-zinc-800/50 flex items-center justify-between text-[11px] font-mono text-zinc-500 group-hover:text-zinc-300">
+                            <span>READ FULL ARTICLE</span>
+                            <span>→</span>
+                        </div>
                     </a>
                 `).join('');
             } catch (error) {
-                container.innerHTML = '<p class="text-accent font-medium col-span-full text-center">Error aggregating news feeds.</p>';
+                container.innerHTML = '<p class="text-red-400 font-mono text-center col-span-full py-8">Error connecting to news feeds.</p>';
             }
         }
 
-        // 3. Standings
+        // --- 3. Standings (Accurate 1-15 Sort) ---
         async function fetchStandings() {
             const container = document.getElementById('standings-container');
             const url = `https://site.api.espn.com/apis/v2/sports/basketball/nba/standings`;
@@ -481,7 +489,14 @@
                 const renderConference = (confData, title) => {
                     if (!confData || !confData.standings || !confData.standings.entries) return '';
                     
-                    const rows = confData.standings.entries.map((team, index) => {
+                    // Sort strictly by win percentage or wins descending to guarantee 1-15 order
+                    const sortedEntries = [...confData.standings.entries].sort((a, b) => {
+                        const getPct = (entry) => parseFloat(entry.stats.find(s => s.name === 'winPercent')?.value || 0);
+                        const getWins = (entry) => parseInt(entry.stats.find(s => s.name === 'wins')?.value || 0);
+                        return getPct(b) - getPct(pc => pc) || getWins(b) - getWins(a);
+                    });
+
+                    const rows = sortedEntries.map((team, index) => {
                         const stats = team.stats;
                         const wins = stats.find(s => s.name === 'wins')?.value || 0;
                         const losses = stats.find(s => s.name === 'losses')?.value || 0;
@@ -491,34 +506,34 @@
                         const logo = team.team.logos?.[0]?.href || '';
 
                         return `
-                            <tr class="border-b border-gray-800/50 hover:bg-base transition-colors font-sans">
-                                <td class="py-3 px-2 text-sm flex items-center gap-3">
-                                    <span class="text-textMuted font-bold w-4 text-right text-xs">${index + 1}</span> 
-                                    <img src="${logo}" class="w-6 h-6 object-contain drop-shadow">
-                                    <span class="font-semibold text-textBase">${team.team.abbreviation}</span>
+                            <tr class="border-b border-zinc-800/50 hover:bg-zinc-900/50 font-mono text-xs">
+                                <td class="py-3 px-2 flex items-center gap-2.5">
+                                    <span class="text-zinc-500 w-5 text-right font-bold">${index + 1}</span> 
+                                    <img src="${logo}" class="w-5 h-5 object-contain">
+                                    <span class="font-bold text-white">${team.team.abbreviation}</span>
                                 </td>
-                                <td class="py-3 px-2 text-sm text-right text-textBase font-semibold">${wins}</td>
-                                <td class="py-3 px-2 text-sm text-right text-textBase font-semibold">${losses}</td>
-                                <td class="py-3 px-2 text-sm text-right text-textMuted font-medium">${pct}</td>
-                                <td class="py-3 px-2 text-sm text-right text-textMuted font-medium">${gb}</td>
-                                <td class="py-3 px-2 text-sm text-right text-accent font-semibold">${streak}</td>
+                                <td class="py-3 px-2 text-right font-semibold text-white">${wins}</td>
+                                <td class="py-3 px-2 text-right font-semibold text-white">${losses}</td>
+                                <td class="py-3 px-2 text-right text-zinc-400">${pct}</td>
+                                <td class="py-3 px-2 text-right text-zinc-400">${gb}</td>
+                                <td class="py-3 px-2 text-right text-accent font-semibold">${streak}</td>
                             </tr>
                         `;
                     }).join('');
 
                     return `
-                        <div class="bg-surface border border-gray-800 rounded-xl p-6 shadow-md">
-                            <h3 class="font-serif font-bold text-2xl mb-4 text-textBase border-b border-gray-800 pb-2">${title}</h3>
+                        <div class="bg-surface border border-zinc-800 rounded-xl p-5">
+                            <h3 class="font-mono font-bold text-base mb-4 text-white border-b border-zinc-800 pb-2">${title}</h3>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left whitespace-nowrap">
                                     <thead>
-                                        <tr class="border-b border-gray-700">
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans">Team</th>
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans text-right">W</th>
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans text-right">L</th>
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans text-right">Pct</th>
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans text-right">GB</th>
-                                            <th class="py-2 px-2 text-xs font-bold text-textMuted uppercase tracking-wider font-sans text-right">Strk</th>
+                                        <tr class="border-b border-zinc-800 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                                            <th class="py-2 px-2">Team</th>
+                                            <th class="py-2 px-2 text-right">W</th>
+                                            <th class="py-2 px-2 text-right">L</th>
+                                            <th class="py-2 px-2 text-right">PCT</th>
+                                            <th class="py-2 px-2 text-right">GB</th>
+                                            <th class="py-2 px-2 text-right">STRK</th>
                                         </tr>
                                     </thead>
                                     <tbody>${rows}</tbody>
@@ -536,7 +551,7 @@
                     renderConference(westData, 'Western Conference');
 
             } catch (error) {
-                container.innerHTML = '<p class="text-accent font-medium col-span-full text-center">Error loading standings.</p>';
+                container.innerHTML = '<p class="text-red-400 font-mono col-span-full text-center">Error loading standings.</p>';
             }
         }
 
@@ -544,20 +559,19 @@
         document.addEventListener('DOMContentLoaded', () => {
             const dateInput = document.getElementById('datePicker');
             const today = new Date();
-            // Adjust for local timezone to ensure the default date is correct for the user's current day
             const offset = today.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(today - offset)).toISOString().split('T')[0];
             
             dateInput.value = localISOTime;
+            document.getElementById('scoreboard-date-label').textContent = localISOTime;
 
-            // Initial fetch
             fetchScoreboard(localISOTime);
             fetchNews();
             fetchStandings();
 
-            // Refetch scoreboard on date change
             dateInput.addEventListener('change', (e) => {
                 if(e.target.value) {
+                    document.getElementById('scoreboard-date-label').textContent = e.target.value;
                     fetchScoreboard(e.target.value);
                 }
             });
